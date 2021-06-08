@@ -1,0 +1,101 @@
+from locorobo import LocoRobo
+from locorobo import MotorDirection
+from locorobo import Data
+from locorobo import WaitType
+from locorobo import Song
+from locorobo import Note
+
+def get_robot(robots, name):
+    robot = None
+
+    # Search through robots found during the scan for
+    # the one we want
+    for r in robots.values():
+        if r.name == name:
+            robot = r
+
+            # We found the robot, so stop the for loop
+            break
+
+    # If we did not find the robot during the scan, stop the program
+    if not robot:
+        raise Exception('Could not find robot with specified name')
+
+    return robot
+def turn_right(robot, speed=1, degrees=90):
+    """Turn robot right by degrees at speed."""
+    robot.setup_wait(WaitType.ROTATION, degrees * 1000)
+    robot.move(MotorDirection.FORWARD, MotorDirection.BACKWARD, speed, speed, True)
+
+def turn_left(robot, speed=1, degrees=90):
+    """Turn robot right by degrees at speed."""
+    robot.setup_wait(WaitType.ROTATION, degrees * 1000)
+    robot.move(MotorDirection.BACKWARD, MotorDirection.FORWARD, speed, speed, True)
+def read(robot):
+    """Return left, front, right distances."""
+    speed = 3 / 4
+
+    robot.enable_sensor(Data.ULTRASONIC, True)
+    front = robot.get_sensor_value(Data.ULTRASONIC)
+
+    turn_right(robot, speed)
+    right = robot.get_sensor_value(Data.ULTRASONIC)
+
+    turn_left(robot, speed, 180)
+    left = robot.get_sensor_value(Data.ULTRASONIC)
+
+    turn_right(robot, speed)
+
+    return left, front, right
+def forward(robot, speed=1, distance=30):
+    """Move robot forward by distance cm at speed."""
+    robot.setup_wait(WaitType.DISTANCE, distance * 1000)
+    robot.move(MotorDirection.FORWARD, MotorDirection.FORWARD, speed, speed, True)
+def main():
+    # Tell LocoRobo what serial port to use
+    LocoRobo.setup("/dev/tty.usbmodem1")
+    
+    # Scan for robots
+    robots = LocoRobo.scan(2000)
+
+    # Use get_robots to find robot with name lr 00:07 in the scan result
+    robot = get_robot(robots, "Timmy")
+
+    robot.connect()
+    robot.activate_motors()
+    robot.enable_sensor(Data.ULTRASONIC, True)
+    while True:
+        l,f,r = read(robot)
+        print (l,f,r)
+        if f > 30:
+            forward (robot,1.5,30)
+        elif r > 30:
+            turn_right (robot, 1, 90)
+        elif l > 30:
+            turn_left (robot, 1, 90)
+        else:
+            turn_right(robot,1,180)
+        if f > 1500 and r > 1500 and l > 1500:
+            break
+
+    robot.deactivate_motors()
+    robot.disconnect()
+
+# If we are on the main thread, run the program
+if __name__ == "__main__":
+
+    try:
+        main()
+    except:
+        LocoRobo.stop()
+        raise
+
+    LocoRobo.stop()
+
+    # For compatibility with webapp's python, we can't use finally.
+    # If you are using local python, you can do the following
+    #
+    # try:
+    #     main()
+    # finally:
+    #     LocoRobo.stop()
