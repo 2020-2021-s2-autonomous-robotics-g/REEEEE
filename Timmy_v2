@@ -66,17 +66,18 @@ def main():
     robot.enable_sensor(Data.ULTRASONIC, True)
     while True:
         l,f,r = read(robot)
+        f = int(f)
+        l = int (l)
+        r = int (r)
         print (l,f,r)
         if f > 30:
             forward (robot,1.5,30)
-        elif r > 30:
-            turn_right (robot, 1, 90)
         elif l > 30:
             turn_left (robot, 1, 90)
+        elif r > 30:
+            turn_right (robot, 1, 90)
         else:
             turn_right(robot,1,180)
-        if f > 1500 and r > 1500 and l > 1500:
-            break
 
     robot.deactivate_motors()
     robot.disconnect()
